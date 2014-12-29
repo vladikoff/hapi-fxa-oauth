@@ -1,19 +1,18 @@
 var boom = require('boom')
-var https = require('https')
 var Pool = require('poolee')
 var pool = null
 
-exports.register = function (plugin, options, next) {
+exports.register = function (server, options, next) {
   pool = new Pool(
-    https,
+    require(options.insecure ? 'http' : 'https'),
     [options.host + ':' + (options.port || 443)],
     {
-      keepAlive: !!options.keepAlive,
+      keepAlive: options.keepAlive !== false,
       ping: '/__heartbeat__'
     }
   )
-  plugin.auth.scheme('fxa-oauth', oauth)
-  plugin.auth.strategy('fxa-oauth', 'fxa-oauth')
+  server.auth.scheme('fxa-oauth', oauth)
+  server.auth.strategy('fxa-oauth', 'fxa-oauth')
   return next()
 }
 
@@ -23,10 +22,10 @@ exports.register.attributes = {
 
 function oauth(server, options) {
   return {
-    authenticate: function (request, next) {
+    authenticate: function (request, reply) {
       var auth = request.headers.authorization
       if (!auth || auth.indexOf('Bearer') !== 0) {
-        return next(boom.unauthorized('Bearer token not provided'))
+        return reply(boom.unauthorized('Bearer token not provided'))
       }
       var token = auth.split(' ')[1]
       pool.request(
@@ -38,17 +37,17 @@ function oauth(server, options) {
         },
         function(err, resp, body) {
           if (err) {
-            return next(boom.serverTimeout(err.message))
+            return reply(boom.serverTimeout(err.message))
           }
           try {
             var json = JSON.parse(body)
             if (json.code >= 400) {
-              return next(boom.unauthorized(json.message))
+              return reply(boom.unauthorized(json.message))
             }
-            next(null, { credentials: json })
+            reply.continue({ credentials: json })
           }
           catch (e) {
-            return next(boom.serverTimeout(e.message))
+            return reply(boom.serverTimeout(e.message))
           }
         }
       )

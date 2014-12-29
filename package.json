@@ -1,6 +1,6 @@
 {
   "name": "hapi-fxa-oauth",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -9,10 +9,10 @@
   "author": "",
   "license": "MPL 2.0",
   "dependencies": {
-    "boom": "2.5.1",
+    "boom": "2.6.1",
     "poolee": "0.4.15"
   },
   "peerDependencies": {
-    "hapi": ">=2.x.x"
+    "hapi": ">=8.x.x"
   }
 }
