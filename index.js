@@ -25,7 +25,7 @@ function oauth(server, options) {
     authenticate: function (request, reply) {
       var auth = request.headers.authorization
       if (!auth || auth.indexOf('Bearer') !== 0) {
-        return reply(boom.unauthorized('Bearer token not provided'))
+        return reply(boom.unauthorized(null, 'fxa-oauth')) // missing
       }
       var token = auth.split(' ')[1]
       pool.request(
