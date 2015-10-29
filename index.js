@@ -1,3 +1,7 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 var boom = require('boom')
 var Pool = require('poolee')
 var pool = null
@@ -25,7 +29,9 @@ function oauth(server, options) {
     authenticate: function (request, reply) {
       var auth = request.headers.authorization
       if (!auth || auth.indexOf('Bearer') !== 0) {
-        return reply(boom.unauthorized(null, 'fxa-oauth')) // missing
+        // This is the necessary incantation to tell hapi to try
+        // the next auth stragegy in the series, if any.
+        return reply(boom.unauthorized(null, 'fxa-oauth'))
       }
       var token = auth.split(' ')[1]
       pool.request(
