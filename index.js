@@ -2,21 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+var url = require('url')
 var boom = require('boom')
 var Pool = require('poolee')
-var pool = null
 
 exports.register = function (server, options, next) {
-  pool = new Pool(
-    require(options.insecure ? 'http' : 'https'),
-    [options.host + ':' + (options.port || 443)],
-    {
-      keepAlive: options.keepAlive !== false,
-      ping: '/__heartbeat__'
-    }
-  )
   server.auth.scheme('fxa-oauth', oauth)
-  server.auth.strategy('fxa-oauth', 'fxa-oauth')
+  if (options) {
+    server.auth.strategy('fxa-oauth', 'fxa-oauth', options)
+  }
   return next()
 }
 
@@ -25,6 +19,45 @@ exports.register.attributes = {
 }
 
 function oauth(server, options) {
+  // Callers can either specify the verification URL,
+  // or the individual components as separate options.
+  if (options.url) {
+    var pUrl = url.parse(options.url)
+    if(!options.host) {
+      options.host = pUrl.hostname
+    }
+    if (!options.port) {
+      if (pUrl.port) {
+        options.port = parseInt(pUrl.port)
+      } else {
+        if (pUrl.protocol === 'http:') {
+          options.port = 80
+        }
+      }
+    }
+    if(!options.path) {
+      options.path = pUrl.path
+    }
+    if(!options.insecure) {
+      if (pUrl.protocol === 'http:') {
+        options.insecure = true
+      }
+    }
+  }
+  options.path = options.path || ''
+  while (options.path.slice(-1) === '/') {
+    options.path = options.path.slice(0, -1)
+  }
+
+  var pool = new Pool(
+    require(options.insecure ? 'http' : 'https'),
+    [options.host + ':' + (options.port || (options.insecure ? 80 : 443))],
+    {
+      keepAlive: options.keepAlive !== false,
+      ping: '/__heartbeat__'
+    }
+  )
+
   return {
     authenticate: function (request, reply) {
       var auth = request.headers.authorization
@@ -37,7 +70,7 @@ function oauth(server, options) {
       pool.request(
         {
           method: 'POST',
-          path: '/v1/verify',
+          path: options.path + '/v1/verify',
           headers: { 'Content-Type': 'application/json' },
           data: JSON.stringify({ token: token }),
         },

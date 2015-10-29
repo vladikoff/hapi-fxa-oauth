@@ -18,10 +18,8 @@ Or customize things like so:
     server.register({
       register: require('hapi-fxa-oauth'),
       options: {
-        host: 'oauth-stable.dev.lcip.org', // FxA dev server
-        port: 443,                         // explicitly specify port
-        insecure: false,                   // use https (the default!)
-        keepAlive: false,                  // don't hold connections open
+        url: 'https://oauth-stable.dev.lcip.org', // FxA dev server
+        keepAlive: false,                         // don't hold connections open
       }
     })
 
