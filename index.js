@@ -57,6 +57,8 @@ function oauth(server, options) {
       ping: '/__heartbeat__'
     }
   )
+  
+  var extra = options.extra || {}
 
   return {
     authenticate: function (request, reply) {
@@ -67,12 +69,17 @@ function oauth(server, options) {
         return reply(boom.unauthorized(null, 'fxa-oauth'))
       }
       var token = auth.split(' ')[1]
+      var data = { token: token }
+      for (var key in extra) {
+        data[key] = extra[key]
+      }
+      
       pool.request(
         {
           method: 'POST',
           path: options.path + '/v1/verify',
           headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify({ token: token }),
+          data: JSON.stringify(data),
         },
         function(err, resp, body) {
           if (err) {
