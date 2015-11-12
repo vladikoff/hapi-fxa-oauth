@@ -57,7 +57,7 @@ function oauth(server, options) {
       ping: '/__heartbeat__'
     }
   )
-  
+
   var extra = options.extra || {}
 
   return {
@@ -73,7 +73,7 @@ function oauth(server, options) {
       for (var key in extra) {
         data[key] = extra[key]
       }
-      
+
       pool.request(
         {
           method: 'POST',
