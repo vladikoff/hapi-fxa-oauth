@@ -6,7 +6,7 @@
   "repository": "https://github.com/mozilla/hapi-fxa-oauth",
   "dependencies": {
     "boom": "2.6.1",
-    "poolee": "0.4.15"
+    "poolee": "1.0.1"
   },
   "devDependencies": {
     "eslint": "^1.7.3",
