@@ -83,7 +83,7 @@ function oauth(server, options) {
         },
         function(err, resp, body) {
           if (err) {
-            return reply(boom.serverTimeout(err.message))
+            return reply(boom.serverUnavailable(err.message))
           }
           try {
             var json = JSON.parse(body)
@@ -93,7 +93,7 @@ function oauth(server, options) {
             reply.continue({ credentials: json })
           }
           catch (e) {
-            return reply(boom.serverTimeout(e.message))
+            return reply(boom.serverUnavailable(e.message))
           }
         }
       )
