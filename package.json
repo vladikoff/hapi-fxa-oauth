@@ -5,11 +5,11 @@
   "author": "Mozilla (https://mozilla.org/)",
   "repository": "https://github.com/mozilla/hapi-fxa-oauth",
   "dependencies": {
-    "boom": "5.2.0",
+    "boom": "7.2.0",
     "poolee": "1.0.1"
   },
   "devDependencies": {
-    "eslint": "^4.18.0",
+    "eslint": "^4.19.1",
     "eslint-config-fxa": "^3.0.0"
   },
   "license": "MPL-2.0",
