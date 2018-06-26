@@ -6,16 +6,14 @@ var url = require('url')
 var boom = require('boom')
 var Pool = require('poolee')
 
-exports.register = function (server, options, next) {
-  server.auth.scheme('fxa-oauth', oauth)
-  if (options) {
-    server.auth.strategy('fxa-oauth', 'fxa-oauth', options)
+exports.plugin = {
+  pkg: require('./package.json'),
+  register: function (server, options) {
+    server.auth.scheme('fxa-oauth', oauth)
+    if (options) {
+      server.auth.strategy('fxa-oauth', 'fxa-oauth', options)
+    }
   }
-  return next()
-}
-
-exports.register.attributes = {
-  pkg: require('./package.json')
 }
 
 function oauth(server, options) {
@@ -61,12 +59,12 @@ function oauth(server, options) {
   var extra = options.extra || {}
 
   return {
-    authenticate: function (request, reply) {
+    authenticate: async function (request, h) {
       var auth = request.headers.authorization
       if (!auth || auth.indexOf('Bearer') !== 0) {
         // This is the necessary incantation to tell hapi to try
         // the next auth stragegy in the series, if any.
-        return reply(boom.unauthorized(null, 'fxa-oauth'))
+        throw boom.unauthorized(null, 'fxa-oauth')
       }
       var token = auth.split(' ')[1]
       var data = { token: token }
@@ -74,29 +72,43 @@ function oauth(server, options) {
         data[key] = extra[key]
       }
 
-      pool.request(
-        {
-          method: 'POST',
-          path: options.path + '/v1/verify',
-          headers: { 'Content-Type': 'application/json' },
-          data: JSON.stringify(data),
-        },
-        function(err, resp, body) {
-          if (err) {
-            return reply(boom.serverUnavailable(err.message))
-          }
-          try {
-            var json = JSON.parse(body)
-            if (json.code >= 400) {
-              return reply(boom.unauthorized(json.message))
+      function makeReq() {
+        return new Promise((resolve, reject) => {
+          pool.request(
+            {
+              method: 'POST',
+              path: options.path + '/v1/verify',
+              headers: { 'Content-Type': 'application/json' },
+              data: JSON.stringify(data),
+            },
+            function(err, resp, body) {
+              if (err) {
+                return reject(boom.serverUnavailable(err.message))
+              }
+
+              try {
+                var json = JSON.parse(body)
+              } catch (err) {
+                return reject(boom.serverUnavailable(err.message))
+              }
+
+              if (json.code >= 400) {
+                return reject(boom.unauthorized(json.message))
+              }
+
+              return resolve(json)
             }
-            reply.continue({ credentials: json })
-          }
-          catch (e) {
-            return reply(boom.serverUnavailable(e.message))
-          }
-        }
-      )
+          )
+        })
+
+      }
+
+      return makeReq().then((json) => {
+        return h.authenticated({credentials: json})
+      })
+        .catch((err) => {
+          return h.unauthenticated(err)
+        })
     }
   }
 }
